@@ -1,3 +1,95 @@
-from django.shortcuts import render
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.db import transaction
+from .models import *
+from .serializers import *
 
-# Create your views here.
+class MasterDataViewSet(viewsets.ModelViewSet):
+    """Generic ViewSet for simple Master Data"""
+    permission_classes = []
+
+class ContactViewSet(MasterDataViewSet):
+    queryset = Contact.objects.all()
+    serializer_class = ContactSerializer
+
+class ProductViewSet(MasterDataViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+class AnalyticalAccountViewSet(MasterDataViewSet):
+    queryset = AnalyticalAccount.objects.all()
+    serializer_class = AnalyticalAccountSerializer
+
+class AutoAnalyticRuleViewSet(MasterDataViewSet):
+    queryset = AutoAnalyticRule.objects.all()
+    serializer_class = AutoAnalyticRuleSerializer
+
+class BudgetViewSet(MasterDataViewSet):
+    queryset = Budget.objects.all()
+    serializer_class = BudgetSerializer
+
+    @action(detail=True, methods=['post'])
+    def revise(self, request, pk=None):
+        """
+        Handles Budget Revision Logic
+        1. Archive current budget
+        2. Clone it to a new draft with revision_number + 1
+        """
+        old_budget = self.get_object()
+        
+        new_budget = Budget.objects.create(
+            name=old_budget.name,
+            start_date=old_budget.start_date,
+            end_date=old_budget.end_date,
+            state='revised',
+            revision_number=old_budget.revision_number + 1,
+            parent_budget=old_budget
+        )
+        
+        for line in old_budget.lines.all():
+            BudgetLine.objects.create(
+                budget=new_budget,
+                analytical_account=line.analytical_account,
+                planned_amount=line.planned_amount
+            )
+            
+        old_budget.state = 'cancelled'
+        old_budget.save()
+        
+        return Response(BudgetSerializer(new_budget).data)
+
+class InvoiceViewSet(MasterDataViewSet):
+    queryset = Invoice.objects.all()
+    serializer_class = InvoiceSerializer
+
+    @action(detail=True, methods=['post'])
+    def confirm(self, request, pk=None):
+        """
+        The 'Post' Button Logic
+        1. Change State to Posted
+        2. Create Analytic Items (The Ledger)
+        """
+        invoice = self.get_object()
+        if invoice.state != 'draft':
+            return Response({'error': 'Only draft invoices can be confirmed'}, status=400)
+            
+        with transaction.atomic():
+            invoice.state = 'posted'
+            invoice.save()
+            
+            for line in invoice.lines.all():
+                if line.analytical_account:
+                    amount = line.quantity * line.price_unit
+                    if invoice.invoice_type == 'in_invoice':
+                        amount = -amount
+                        
+                    AnalyticItem.objects.create(
+                        name=f"Invoice {invoice.id} - {line.product.name}",
+                        account=line.analytical_account,
+                        amount=amount,
+                        reference=f"INV-{invoice.id}",
+                        date=invoice.date
+                    )
+                    
+        return Response(InvoiceSerializer(invoice).data)
