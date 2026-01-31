@@ -79,7 +79,7 @@ export default function Dashboard() {
           items={[
             { label: "Contacts", href: "/contacts" },
             { label: "Products", href: "/products" }, // <--- Make sure this route exists later
-            { label: "Analytical Accounts", href: "/accounts" }, // <--- And this
+            { label: "Analytical Accounts", href: "/analytical-accounts" }, // <--- And this
             { label: "Auto Analytic Models", href: "/rules" },
             { label: "Budgets", href: "/budgets" },
             { label: "Create User", href: "/users/create" },
@@ -94,7 +94,7 @@ export default function Dashboard() {
           items={[
             { label: "Purchase Orders", href: "/purchase-orders" },
             { label: "Create Vendor Bill", href: "/invoices/create" },
-            { label: "Payments", href: "/payments" },
+            { label: "Payments", href: "/payments?type=send" },
           ]}
         />
 
@@ -105,8 +105,8 @@ export default function Dashboard() {
           color="text-green-400"
           items={[
             { label: "Sales Orders", href: "/sales-orders" },
-            { label: "Customer Invoices", href: "/invoices" },
-            { label: "Receipts", href: "/receipts" },
+            { label: "Customer Invoices", href: "/customer-invoices" },
+            { label: "Receipts", href: "/payments?type=receive" },
           ]}
         />
 

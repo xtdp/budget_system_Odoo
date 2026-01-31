@@ -50,6 +50,22 @@ class BudgetSerializer(serializers.ModelSerializer):
         model = Budget
         fields = ['id', 'name', 'start_date', 'end_date', 'state', 'lines']
 
+    def create(self, validated_data):
+        """
+        Custom Create to handle Nested Budget Lines
+        """
+        # 1. Separate the lines data from the budget data
+        lines_data = validated_data.pop('lines')
+        
+        # 2. Create the Parent Budget
+        budget = Budget.objects.create(**validated_data)
+        
+        # 3. Create the Children Lines
+        for line_data in lines_data:
+            BudgetLine.objects.create(budget=budget, **line_data)
+            
+        return budget
+
 class InvoiceLineSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     
@@ -85,3 +101,63 @@ class InvoiceSerializer(serializers.ModelSerializer):
             InvoiceLine.objects.create(invoice=invoice, analytical_account=account, **line_data)
         
         return invoice
+    
+class PurchaseOrderLineSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    class Meta:
+        model = PurchaseOrderLine
+        fields = ['id', 'product', 'product_name', 'quantity', 'price_unit', 'analytical_account']
+
+class PurchaseOrderSerializer(serializers.ModelSerializer):
+    lines = PurchaseOrderLineSerializer(many=True)
+    partner_name = serializers.CharField(source='partner.name', read_only=True)
+    
+    class Meta:
+        model = PurchaseOrder
+        fields = ['id', 'name', 'partner', 'partner_name', 'date_order', 'state', 'amount_total', 'lines']
+
+    def create(self, validated_data):
+        lines_data = validated_data.pop('lines')
+        order = PurchaseOrder.objects.create(**validated_data)
+        
+        total = 0
+        for line_data in lines_data:
+            line = PurchaseOrderLine.objects.create(order=order, **line_data)
+            total += line.quantity * line.price_unit
+        
+        order.amount_total = total
+        order.save()
+        return order
+    
+class SalesOrderLineSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    class Meta:
+        model = SalesOrderLine
+        fields = ['id', 'product', 'product_name', 'quantity', 'price_unit']
+
+class SalesOrderSerializer(serializers.ModelSerializer):
+    lines = SalesOrderLineSerializer(many=True)
+    partner_name = serializers.CharField(source='partner.name', read_only=True)
+    
+    class Meta:
+        model = SalesOrder
+        fields = ['id', 'name', 'partner', 'partner_name', 'date_order', 'state', 'amount_total', 'lines']
+
+    def create(self, validated_data):
+        lines_data = validated_data.pop('lines')
+        order = SalesOrder.objects.create(**validated_data)
+        
+        total = 0
+        for line_data in lines_data:
+            line = SalesOrderLine.objects.create(order=order, **line_data)
+            total += line.quantity * line.price_unit
+            
+        order.amount_total = total
+        order.save()
+        return order
+    
+class PaymentSerializer(serializers.ModelSerializer):
+    partner_name = serializers.CharField(source='partner.name', read_only=True)
+    class Meta:
+        model = Payment
+        fields = '__all__'
