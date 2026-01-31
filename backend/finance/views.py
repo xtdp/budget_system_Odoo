@@ -9,6 +9,7 @@ from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 from django.db.models import Sum
+from decimal import Decimal
 
 
 RAZORPAY_KEY_ID = "rzp_test_SASnyteTTEwRTl"
@@ -136,29 +137,26 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     def confirm(self, request, pk=None):
         invoice = self.get_object()
         
-        missing_accounts = []
-        for line in invoice.lines.all():
-            if not line.analytical_account:
-                missing_accounts.append(f"Line with product '{line.product.name}'")
-        
-        if missing_accounts:
-            return Response({
-                'error': 'Cannot Confirm: Missing Analytical Account!', 
-                'details': f"Please select an account for: {', '.join(missing_accounts)}"
-            }, status=400)
+        # 1. Check for Missing Accounts
+        missing = [f"Line with {l.product.name}" for l in invoice.lines.all() if not l.analytical_account]
+        if missing:
+             return Response({'error': 'Missing Analytical Account', 'details': missing}, status=400)
             
         with transaction.atomic():
+            # 2. Calculate Totals
+            total = sum(line.quantity * line.price_unit for line in invoice.lines.all())
+            
             invoice.state = 'posted'
             invoice.payment_state = 'not_paid'
+            invoice.amount_total = total      # 🟢 Set Total
+            invoice.amount_residual = total   # 🟢 Set Residual = Total initially
             invoice.save()
             
+            # 3. Create Analytic Entries
             for line in invoice.lines.all():
                 if line.analytical_account:
                     amount = line.quantity * line.price_unit
-                    
-                    if invoice.invoice_type == 'in_invoice':
-                        amount = -amount
-                    
+                    if invoice.invoice_type == 'in_invoice': amount = -amount
                     AnalyticItem.objects.create(
                         name=f"Invoice: {invoice.id} - {line.product.name}",
                         account=line.analytical_account,
@@ -173,23 +171,36 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     def pay(self, request, pk=None):
         invoice = self.get_object()
         
-        if invoice.payment_state == 'paid':
-             return Response({'error': 'Invoice already paid'}, status=400)
-
-        if invoice.state != 'posted':
-            return Response({'error': 'Invoice must be posted to pay'}, status=400)
+        # 🟢 Get Payment Amount from User (or default to full residual)
+        amount_to_pay = float(request.data.get('amount', invoice.amount_residual))
         
+        if invoice.state != 'posted':
+             return Response({'error': 'Invoice must be posted to pay'}, status=400)
+        
+        if amount_to_pay <= 0 or amount_to_pay > invoice.amount_residual:
+             return Response({'error': f'Invalid Amount. Max Payble: {invoice.amount_residual}'}, status=400)
+
         with transaction.atomic():
-            invoice.payment_state = 'paid'
-            invoice.save()
-            
+            # 1. Create Payment Record
             Payment.objects.create(
-                payment_type='receive',
+                payment_type='send' if invoice.invoice_type == 'in_invoice' else 'receive',
                 partner=invoice.partner,
-                amount=sum(line.quantity * line.price_unit for line in invoice.lines.all()),
+                amount=amount_to_pay,
                 ref=f"Payment for {invoice.id}",
                 date=date.today()
             )
+
+            # 2. Update Residual
+            invoice.amount_residual -= Decimal(str(amount_to_pay))
+            
+            # 3. Update Status Logic
+            if invoice.amount_residual <= 0:
+                invoice.payment_state = 'paid'
+                invoice.amount_residual = 0 # Safety clamp
+            else:
+                invoice.payment_state = 'partial' # 🟢 Mark as Partial
+            
+            invoice.save()
         
         return Response(InvoiceSerializer(invoice).data)
     

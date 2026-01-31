@@ -96,6 +96,8 @@ class Invoice(models.Model):
     date = models.DateField(default=timezone.now)
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default='draft')
     payment_state = models.CharField(max_length=20, choices=PAYMENT_STATE, default='not_paid')
+    amount_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    amount_residual = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     access_token = models.UUIDField(default=uuid.uuid4, editable=False)
 
     def __str__(self):

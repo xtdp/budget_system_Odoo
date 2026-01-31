@@ -157,7 +157,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Invoice
-        fields = ['id', 'invoice_type', 'partner', 'partner_name', 'date', 'state', 'payment_state', 'lines', 'total_amount']
+        fields = '__all__'
 
     def get_total_amount(self, obj):
         return sum(line.quantity * line.price_unit for line in obj.lines.all())
