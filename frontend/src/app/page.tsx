@@ -36,10 +36,11 @@ export default function Dashboard() {
     const name = localStorage.getItem('user_name');
     
     if (!role || !name) {
-      // If no login found, Redirect to Login Page immediately
-      router.push('/login');
+      router.push('/login'); // No login? Go to Login.
+    } else if (role !== 'admin') {
+      router.push('/portal'); // Not Admin? Go to Portal. <--- SECURITY FIX
     } else {
-      setUser(name);
+      setUser(name); // All good, show Admin Dashboard.
     }
   }, []);
 
@@ -92,7 +93,7 @@ export default function Dashboard() {
           color="text-blue-400"
           items={[
             { label: "Purchase Orders", href: "/purchase-orders" },
-            { label: "Vendor Bills", href: "/bills" },
+            { label: "Create Vendor Bill", href: "/invoices/create" },
             { label: "Payments", href: "/payments" },
           ]}
         />
