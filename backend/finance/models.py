@@ -4,6 +4,15 @@ from django.utils import timezone
 import uuid
 from datetime import date
 
+class ProductCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    def __str__(self): return self.name
+    class Meta: verbose_name_plural = "Product Categories"
+
+class ContactTag(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    def __str__(self): return self.name
+
 class AnalyticalAccount(models.Model):
     ACCOUNT_TYPES = [
         ('income', 'Income'),
@@ -19,19 +28,35 @@ class AnalyticalAccount(models.Model):
         return f"[{self.code}] {self.name}"
 
 class Product(models.Model):
+    STATE_CHOICES = [('draft', 'Draft'), ('confirmed', 'Confirmed'), ('archived', 'Archived')]
     name = models.CharField(max_length=255)
-    category = models.CharField(max_length=100)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    category = models.ForeignKey(ProductCategory, on_delete=models.SET_NULL, null=True, blank=True)
+    sales_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Sales Price (Rs)")
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Purchase Price (Rs)")
     
-    def __str__(self):
-        return self.name
+    state = models.CharField(max_length=20, choices=STATE_CHOICES, default='draft')
+    
+    @property
+    def price(self): return self.sales_price
+
+    def __str__(self): return self.name
 
 class Contact(models.Model):
+    STATE_CHOICES = [('draft', 'Draft'), ('confirmed', 'Confirmed'), ('archived', 'Archived')]
     name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20, blank=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='contact_profile')
-    
+    address = models.TextField(blank=True, help_text="Street, City, State, Country, Pincode")
+    street = models.CharField(max_length=255, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    province = models.CharField(max_length=100, blank=True) 
+    country = models.CharField(max_length=100, blank=True)
+    pincode = models.CharField(max_length=20, blank=True)
+    state = models.CharField(max_length=20, choices=STATE_CHOICES, default='draft')
+    tags = models.ManyToManyField(ContactTag, blank=True)
+    image = models.ImageField(upload_to='contacts/', blank=True, null=True)
+
     def __str__(self):
         return self.name
 

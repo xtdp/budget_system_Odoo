@@ -10,10 +10,9 @@ export default function CustomerInvoiceList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch all invoices
+    // Fetch all invoices and filter for Sales
     api.get('/finance/invoices/')
       .then(res => {
-        // Filter Client-Side for "out_invoice" (Customer Invoice)
         const customerInvoices = res.data.filter((inv: any) => inv.invoice_type === 'out_invoice');
         setInvoices(customerInvoices);
       })
@@ -25,7 +24,7 @@ export default function CustomerInvoiceList() {
     <div className="min-h-screen bg-[#0f172a] p-8 text-white">
       <div className="max-w-6xl mx-auto mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/')} className="p-2 hover:bg-slate-800 rounded-full">
+          <button onClick={() => router.push('/')} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
             <ArrowLeft size={24} className="text-slate-400" />
           </button>
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -34,31 +33,42 @@ export default function CustomerInvoiceList() {
         </div>
         <button 
           onClick={() => router.push('/invoices/create?type=out_invoice')} 
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center font-bold"
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center font-bold shadow-lg shadow-green-500/20"
         >
           <Plus size={18} className="mr-2" /> Create Invoice
         </button>
       </div>
 
       <div className="max-w-6xl mx-auto space-y-4">
-        {loading ? <p>Loading...</p> : invoices.map((inv: any) => (
-          <div key={inv.id} className="bg-[#1e293b] border border-slate-700 p-6 rounded-xl flex justify-between items-center hover:border-green-500 transition-all">
+        {loading ? <p className="text-center text-slate-500 p-8">Loading Invoices...</p> : invoices.map((inv: any) => (
+          <div key={inv.id} className="bg-[#1e293b] border border-slate-700 p-6 rounded-xl flex justify-between items-center hover:border-green-500 transition-all shadow-lg">
+            
             <div>
               <div className="flex items-center gap-3 mb-1">
                 <h3 className="font-bold text-xl text-white">Invoice #{inv.id}</h3>
-                <span className={`px-2 py-0.5 rounded text-xs uppercase font-bold ${inv.state === 'posted' ? 'bg-green-500/20 text-green-400' : 'bg-slate-600 text-slate-300'}`}>
+                <span className={`px-2 py-0.5 rounded text-xs uppercase font-bold tracking-wider ${
+                    inv.state === 'posted' ? 'bg-green-500/20 text-green-400' : 'bg-slate-600 text-slate-300'
+                }`}>
                   {inv.state}
                 </span>
               </div>
-              <p className="text-slate-400 text-sm">Customer: {inv.partner_name} • Date: {inv.date}</p>
+              <p className="text-slate-400 text-sm">Customer: <span className="text-white font-medium">{inv.partner_name}</span> • Date: {inv.date}</p>
             </div>
+
             <div className="text-right">
-              <p className="text-2xl font-bold text-green-400">₹{inv.total_amount || '0.00'}</p>
-              <p className="text-xs text-slate-500 uppercase">{inv.payment_state.replace('_', ' ')}</p>
+              <p className="text-2xl font-bold text-green-400 mb-1">₹{inv.total_amount || '0.00'}</p>
+              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                  inv.payment_state === 'paid' ? 'bg-green-900 text-green-300' : 'bg-red-900/30 text-red-300'
+              }`}>
+                  {inv.payment_state.replace('_', ' ')}
+              </span>
             </div>
+
           </div>
         ))}
-        {invoices.length === 0 && !loading && <div className="text-center text-slate-500 mt-12">No invoices found.</div>}
+        {invoices.length === 0 && !loading && (
+            <div className="text-center text-slate-500 mt-12 border border-dashed border-slate-700 rounded-xl p-12">No customer invoices found.</div>
+        )}
       </div>
     </div>
   );

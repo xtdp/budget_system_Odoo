@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, History, PieChart } from 'lucide-react';
 
 export default function BudgetListPage() {
   const router = useRouter();
@@ -24,17 +24,14 @@ export default function BudgetListPage() {
     }
   };
 
-  // 🎨 Helper: Smart Progress Bar Color
-  const getProgressColor = (planned: number, actual: number) => {
-    const percentage = (actual / planned) * 100;
-    
-    // Scenario 1: Income/Sales (Positive Plan) - Earning MORE is GOOD (Green/Gold)
-    // Scenario 2: Expense (If you handle expenses as positive numbers in budget lines) - Spending MORE is BAD (Red)
-    
-    // Assuming standard "Expense Budget" behavior for now:
-    if (percentage > 100) return 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]'; // 🚨 Over Budget
-    if (percentage > 85) return 'bg-orange-500'; // ⚠️ Warning Zone
-    return 'bg-green-500'; // ✅ Safe Zone
+  const handleRevise = async (id: number) => {
+      if(!confirm("Create a revision for this budget? The old one will be archived.")) return;
+      try {
+          await api.post(`/finance/budgets/${id}/revise/`);
+          fetchBudgets(); // Refresh list
+      } catch (err) {
+          alert("Failed to revise budget");
+      }
   };
 
   return (
@@ -45,83 +42,81 @@ export default function BudgetListPage() {
           <button onClick={() => router.push('/')} className="p-2 hover:bg-slate-800 rounded-full">
             <ArrowLeft size={24} className="text-slate-400" />
           </button>
-          <h1 className="text-3xl font-bold">Budget Management</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <PieChart className="text-pink-400" /> Budget Management
+          </h1>
         </div>
         <button 
           onClick={() => router.push('/budgets/create')} 
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center font-bold"
+          className="bg-[#1e293b] border border-pink-500 text-pink-400 hover:bg-pink-900/20 px-6 py-2 rounded-lg flex items-center font-bold"
         >
           <Plus size={18} className="mr-2" /> New Budget
         </button>
       </div>
 
-      {/* Budget List */}
-      <div className="max-w-6xl mx-auto space-y-6">
-        {loading ? <p className="text-slate-500 animate-pulse">Loading financial data...</p> : budgets.map((budget: any) => (
-          <div key={budget.id} className="bg-[#1e293b] border border-slate-700 rounded-xl p-6 shadow-xl hover:border-slate-600 transition-all">
-            
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white">{budget.name}</h2>
-                <p className="text-slate-400 text-sm mt-1">📅 {budget.start_date} to {budget.end_date}</p>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                budget.state === 'confirmed' ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 text-slate-300'
-              }`}>
-                {budget.state}
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              {budget.lines.map((line: any) => {
-                const actual = Math.abs(line.actual_amount); // Ensure positive for display
-                const rawPercentage = (actual / line.planned_amount) * 100;
-                // 🔒 CAP width at 100% so it never breaks the UI
-                const visualWidth = Math.min(rawPercentage, 100);
-                
-                return (
-                  <div key={line.id} className="bg-[#0f172a] p-4 rounded-lg border border-slate-800">
-                    <div className="flex justify-between mb-2">
-                      <span className="font-bold text-slate-200">{line.account_name}</span>
-                      <span className="text-sm font-mono text-slate-400">
-                        {/* Show real numbers */}
-                        <span className={actual > line.planned_amount ? "text-red-400 font-bold" : "text-slate-400"}>
-                            ₹{actual.toLocaleString()}
-                        </span> 
-                        <span className="mx-2">/</span> 
-                        ₹{line.planned_amount.toLocaleString()}
-                      </span>
-                    </div>
-                    
-                    {/* The Visual Bar Container */}
-                    <div className="w-full bg-slate-700 h-2.5 rounded-full overflow-hidden relative">
-                       {/* The Actual Bar */}
-                      <div 
-                        className={`h-full rounded-full transition-all duration-700 ${getProgressColor(line.planned_amount, actual)}`} 
-                        style={{ width: `${visualWidth}%` }}
-                      ></div>
-                    </div>
-                    
-                    {/* Percentage Text below */}
-                    <div className="text-right mt-1">
-                        <span className="text-[10px] text-slate-500 font-bold">
-                            {rawPercentage.toFixed(1)}% Used
-                        </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-          </div>
-        ))}
+      {/* List Table matching image_da0a7c.png */}
+      <div className="max-w-6xl mx-auto bg-[#1e293b] border border-slate-700 rounded-xl overflow-hidden shadow-xl min-h-[500px]">
         
-        {budgets.length === 0 && !loading && (
-            <div className="text-center p-12 border-2 border-dashed border-slate-700 rounded-xl">
-                <p className="text-slate-500 mb-4">No budgets found.</p>
-                <button onClick={() => router.push('/budgets/create')} className="text-blue-400 underline">Create your first budget</button>
+        {/* Table Header */}
+        <div className="flex border-b border-slate-600 p-4 text-slate-400 text-sm font-bold uppercase tracking-wider">
+            <div className="flex-1 text-pink-400">Budget Name</div>
+            <div className="w-32 text-pink-400">Start Date</div>
+            <div className="w-32 text-pink-400">End Date</div>
+            <div className="w-32 text-center text-pink-400">Status</div>
+            <div className="w-24 text-center text-pink-400">Pie Chart</div>
+            <div className="w-24 text-right text-pink-400">Actions</div>
+        </div>
+
+        {/* Table Rows */}
+        {loading ? (
+            <div className="p-8 text-center text-slate-500">Loading budgets...</div>
+        ) : budgets.map((budget: any) => (
+            <div key={budget.id} className="flex items-center p-4 border-b border-slate-700/50 hover:bg-slate-800/50 transition-colors group">
+                <div className="flex-1 font-bold text-white text-lg cursor-pointer" onClick={() => router.push(`/budgets/edit/${budget.id}`)}>
+                    {budget.name}
+                    {budget.revision_number > 0 && (
+                        <span className="ml-2 text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">
+                            Rev {budget.revision_number}
+                        </span>
+                    )}
+                </div>
+                <div className="w-32 text-slate-400 text-sm">{budget.start_date}</div>
+                <div className="w-32 text-slate-400 text-sm">{budget.end_date}</div>
+                <div className="w-32 text-center">
+                    <span className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-widest ${
+                        budget.state === 'confirmed' ? 'text-green-400' : 
+                        budget.state === 'revised' ? 'text-slate-500' :
+                        'text-blue-400'
+                    }`}>
+                        {budget.state}
+                    </span>
+                </div>
+                <div className="w-24 text-center">
+                    <button className="text-slate-500 hover:text-pink-400 transition-colors" title="View Chart">
+                        <PieChart size={20} />
+                    </button>
+                </div>
+                <div className="w-24 text-right">
+                        {budget.state === 'confirmed' && (
+                            <button 
+                            onClick={() => handleRevise(budget.id)}
+                            className="text-xs font-bold text-slate-500 hover:text-white flex items-center justify-end gap-1 ml-auto"
+                            title="Revise Budget"
+                            >
+                            <History size={14} /> Revise
+                            </button>
+                        )}
+                </div>
             </div>
+        ))}
+
+        {budgets.length === 0 && !loading && (
+             <div className="p-12 text-center text-slate-500 italic">No budgets found.</div>
         )}
+        
+        {/* Empty Lines for aesthetic matching wireframe */}
+        {[1,2,3,4].map(i => <div key={`e-${i}`} className="border-b border-slate-700/20 h-12"></div>)}
+
       </div>
     </div>
   );

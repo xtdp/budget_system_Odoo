@@ -7,8 +7,9 @@ def apply_auto_analytic_rule(sender, instance, **kwargs):
     if not instance.analytical_account:
         product = instance.product
         
+        category_name = product.category.name if product.category else ""
         rule = AutoAnalyticRule.objects.filter(
-            product_category__iexact=product.category
+            product_category__iexact=category_name
         ).order_by('-priority').first()
         
         if rule:

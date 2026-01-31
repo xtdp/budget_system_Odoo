@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Helvetica, sans-serif; color: #333; }
+        .header-box { text-align: center; margin-bottom: 40px; }
+        .title { font-size: 30px; font-weight: bold; color: #4F46E5; } /* Purple Color */
+        
+        .info-table { width: 100%; margin-bottom: 30px; }
+        .info-table td { padding: 5px; vertical-align: top; }
+        
+        .invoice-details { text-align: right; }
+        .partner-details { text-align: left; }
+
+        /* The Data Table */
+        .items-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .items-table th { background-color: #f3f4f6; padding: 10px; border-bottom: 2px solid #ddd; text-align: left; }
+        .items-table td { padding: 10px; border-bottom: 1px solid #eee; }
+        
+        .total-box { margin-top: 30px; text-align: right; font-size: 18px; font-weight: bold; }
+        .paid-stamp { color: green; border: 2px solid green; padding: 5px 10px; display: inline-block; transform: rotate(-10deg); }
+        .unpaid-stamp { color: red; border: 2px solid red; padding: 5px 10px; display: inline-block; }
+        
+        /* New Style for Payment Reference */
+        .payment-ref { font-size: 10px; color: #555; margin-top: 8px; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+    <div class="header-box">
+        <div class="title">INVOICE</div>
+        <div>Shiv Furniture & Co.</div>
+    </div>
+
+    <table class="info-table">
+        <tr>
+            <td class="partner-details">
+                <strong>Bill To:</strong><br>
+                {{ invoice.partner.name }}<br>
+                {{ invoice.partner.email }}<br>
+                {{ invoice.partner.phone }}
+            </td>
+            <td class="invoice-details">
+                <strong>Invoice #:</strong> INV-{{ invoice.id }}<br>
+                <strong>Date:</strong> {{ invoice.date }}<br>
+                <strong>Status:</strong> 
+                {% if invoice.payment_state == 'paid' %}
+                    <span class="paid-stamp">PAID</span>
+                    
+                    {% if payment_ref %}
+                        <div class="payment-ref">
+                            Ref: {{ payment_ref }}
+                        </div>
+                    {% endif %}
+                    
+                {% else %}
+                    <span class="unpaid-stamp">UNPAID</span>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in lines %}
+            <tr>
+                <td>{{ line.product.name }}</td>
+                <td>{{ line.quantity }}</td>
+                <td>Rs. {{ line.price_unit }}</td>
+                <td>Rs. {% widthratio line.quantity 1 line.price_unit %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total-box">
+        Grand Total: Rs. {{ total }}
+    </div>
+
+    <div style="margin-top: 50px; text-align: center; font-size: 12px; color: #888;">
+        Thank you for your business!<br>
+        Authorized Signature
+    </div>
+
+</body>
+</html>
