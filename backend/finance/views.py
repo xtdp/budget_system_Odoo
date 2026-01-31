@@ -59,35 +59,28 @@ class BudgetViewSet(MasterDataViewSet):
         
         return Response(BudgetSerializer(new_budget).data)
 
-class InvoiceViewSet(MasterDataViewSet):
+class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all()
     serializer_class = InvoiceSerializer
 
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
-        """
-        The 'Post' Button Logic
-        1. Change State to Posted
-        2. Create Analytic Items (The Ledger)
-        """
         invoice = self.get_object()
         if invoice.state != 'draft':
             return Response({'error': 'Only draft invoices can be confirmed'}, status=400)
             
         with transaction.atomic():
             invoice.state = 'posted'
+            invoice.payment_state = 'not_paid'
             invoice.save()
             
             for line in invoice.lines.all():
                 if line.analytical_account:
                     amount = line.quantity * line.price_unit
-                    if invoice.invoice_type == 'in_invoice':
-                        amount = -amount
-                        
                     AnalyticItem.objects.create(
-                        name=f"Invoice {invoice.id} - {line.product.name}",
+                        name=f"Invoice #{invoice.id}: {line.product.name}",
                         account=line.analytical_account,
-                        amount=amount,
+                        amount=amount, 
                         reference=f"INV-{invoice.id}",
                         date=invoice.date
                     )

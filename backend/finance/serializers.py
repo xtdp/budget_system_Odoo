@@ -25,23 +25,37 @@ class ContactSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class BudgetLineSerializer(serializers.ModelSerializer):
-    actual_amount = serializers.ReadOnlyField()
-    
+    account_name = serializers.CharField(source='analytical_account.name', read_only=True)
+    actual_amount = serializers.SerializerMethodField()
+
     class Meta:
         model = BudgetLine
-        fields = ['id', 'analytical_account', 'planned_amount', 'actual_amount']
+        fields = ['id', 'analytical_account', 'account_name', 'planned_amount', 'actual_amount']
+
+    def get_actual_amount(self, obj):
+        total = 0
+        items = AnalyticItem.objects.filter(
+            account=obj.analytical_account,
+            date__gte=obj.budget.start_date,
+            date__lte=obj.budget.end_date 
+        )
+        for item in items:
+            total += item.amount
+        return total
 
 class BudgetSerializer(serializers.ModelSerializer):
-    lines = BudgetLineSerializer(many=True, read_only=True)
+    lines = BudgetLineSerializer(many=True)
     
     class Meta:
         model = Budget
-        fields = '__all__'
+        fields = ['id', 'name', 'start_date', 'end_date', 'state', 'lines']
 
 class InvoiceLineSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    
     class Meta:
         model = InvoiceLine
-        fields = '__all__'
+        fields = ['id', 'product', 'product_name', 'quantity', 'price_unit', 'analytical_account']
 
 class InvoiceSerializer(serializers.ModelSerializer):
     lines = InvoiceLineSerializer(many=True)
@@ -50,22 +64,19 @@ class InvoiceSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Invoice
-        fields = '__all__'
+        fields = ['id', 'invoice_type', 'partner', 'partner_name', 'date', 'state', 'payment_state', 'lines', 'total_amount']
 
     def create(self, validated_data):
-        """
-        Custom Create to handle Auto-Analytical Models
-        """
         lines_data = validated_data.pop('lines')
         invoice = Invoice.objects.create(**validated_data)
         
         for line_data in lines_data:
-            account = line_data.get('analytical_account')
+            account = line_data.pop('analytical_account', None) 
             
             if not account:
                 product = line_data.get('product')
                 rule = AutoAnalyticRule.objects.filter(
-                    product_category=product.category
+                    product_category__iexact=product.category
                 ).order_by('-priority').first()
                 
                 if rule:
