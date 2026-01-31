@@ -66,8 +66,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
         invoice = self.get_object()
-        if invoice.state != 'draft':
-            return Response({'error': 'Only draft invoices can be confirmed'}, status=400)
+        # ... (checks) ...
             
         with transaction.atomic():
             invoice.state = 'posted'
@@ -77,6 +76,10 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             for line in invoice.lines.all():
                 if line.analytical_account:
                     amount = line.quantity * line.price_unit
+                    
+                    if invoice.invoice_type == 'in_invoice':
+                        amount = -amount
+                        
                     AnalyticItem.objects.create(
                         name=f"Invoice #{invoice.id}: {line.product.name}",
                         account=line.analytical_account,
@@ -86,3 +89,16 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                     )
                     
         return Response(InvoiceSerializer(invoice).data)
+    
+
+class PurchaseOrderViewSet(viewsets.ModelViewSet):
+    queryset = PurchaseOrder.objects.all()
+    serializer_class = PurchaseOrderSerializer
+
+class SalesOrderViewSet(viewsets.ModelViewSet):
+    queryset = SalesOrder.objects.all()
+    serializer_class = SalesOrderSerializer
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
