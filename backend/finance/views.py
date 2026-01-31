@@ -66,7 +66,17 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
         invoice = self.get_object()
-        # ... (checks) ...
+        
+        missing_accounts = []
+        for line in invoice.lines.all():
+            if not line.analytical_account:
+                missing_accounts.append(f"Line with product '{line.product.name}'")
+        
+        if missing_accounts:
+            return Response({
+                'error': 'Cannot Confirm: Missing Analytical Account!', 
+                'details': f"Please select an account for: {', '.join(missing_accounts)}"
+            }, status=400)
             
         with transaction.atomic():
             invoice.state = 'posted'
@@ -79,15 +89,39 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                     
                     if invoice.invoice_type == 'in_invoice':
                         amount = -amount
-                        
+                    
                     AnalyticItem.objects.create(
-                        name=f"Invoice #{invoice.id}: {line.product.name}",
+                        name=f"Invoice: {invoice.id} - {line.product.name}",
                         account=line.analytical_account,
                         amount=amount, 
                         reference=f"INV-{invoice.id}",
-                        date=invoice.date
+                        date=date.today()
                     )
                     
+        return Response(InvoiceSerializer(invoice).data)
+    
+    @action(detail=True, methods=['post'])
+    def pay(self, request, pk=None):
+        invoice = self.get_object()
+        
+        if invoice.payment_state == 'paid':
+             return Response({'error': 'Invoice already paid'}, status=400)
+
+        if invoice.state != 'posted':
+            return Response({'error': 'Invoice must be posted to pay'}, status=400)
+        
+        with transaction.atomic():
+            invoice.payment_state = 'paid'
+            invoice.save()
+            
+            Payment.objects.create(
+                payment_type='receive',
+                partner=invoice.partner,
+                amount=sum(line.quantity * line.price_unit for line in invoice.lines.all()),
+                ref=f"Payment for {invoice.id}",
+                date=date.today()
+            )
+        
         return Response(InvoiceSerializer(invoice).data)
     
 

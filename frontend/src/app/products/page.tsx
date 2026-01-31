@@ -8,7 +8,7 @@ export default function ProductMaster() {
   const router = useRouter();
   const [products, setProducts] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ name: '', price: 0, category: 'furniture' });
+  const [formData, setFormData] = useState({ name: '', price: 0, category: '' });
 
   useEffect(() => { loadProducts(); }, []);
 
@@ -63,19 +63,20 @@ export default function ProductMaster() {
                   value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} required />
               </div>
               <div>
-                 <label className="block text-sm text-slate-400 mb-1">Category</label>
-                 <select className="input-field w-full bg-[#0f172a] border border-slate-600 rounded p-2"
-                   value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                   <option value="furniture">Furniture</option>
-                   <option value="consumable">Consumable</option>
-                   <option value="service">Service</option>
-                   <option value="Silver">Silver</option>
-                 </select>
+                 <label className="block text-sm text-slate-400 mb-1">Category (Must match Auto-Rule)</label>
+                 <input 
+                   className="input-field w-full bg-[#0f172a] border border-slate-600 rounded p-2 focus:border-purple-500 outline-none transition-colors"
+                   placeholder="e.g. Events, Raw Material, Silver"
+                   value={formData.category} 
+                   onChange={e => setFormData({...formData, category: e.target.value})} 
+                   required
+                 />
+                 <p className="text-xs text-slate-500 mt-1">Tip: Copy this exactly from your Admin Auto-Rule.</p>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">
-              <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">Cancel</button>
-              <button type="submit" className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-bold">Save</button>
+              <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white transition-colors">Cancel</button>
+              <button type="submit" className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-bold transition-colors">Save</button>
             </div>
           </form>
         </div>

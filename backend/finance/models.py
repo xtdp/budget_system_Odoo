@@ -15,11 +15,16 @@ class AnalyticalAccount(models.Model):
     code = models.CharField(max_length=50, unique=True)
     account_type = models.CharField(max_length=20, choices=ACCOUNT_TYPES, default='expense')
 
+    def __str__(self):
+        return f"[{self.code}] {self.name}"
+
 class Product(models.Model):
     name = models.CharField(max_length=255)
     category = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     
+    def __str__(self):
+        return self.name
 
 class Contact(models.Model):
     name = models.CharField(max_length=255)
@@ -27,6 +32,8 @@ class Contact(models.Model):
     phone = models.CharField(max_length=20, blank=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='contact_profile')
     
+    def __str__(self):
+        return self.name
 
 class AnalyticItem(models.Model):
     name = models.CharField(max_length=255)
@@ -45,6 +52,9 @@ class Budget(models.Model):
     revision_number = models.IntegerField(default=0)
     parent_budget = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)
 
+    def __str__(self):
+        return self.name
+
 
 class BudgetLine(models.Model):
     budget = models.ForeignKey(Budget, related_name='lines', on_delete=models.CASCADE)
@@ -62,6 +72,9 @@ class Invoice(models.Model):
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default='draft')
     payment_state = models.CharField(max_length=20, choices=PAYMENT_STATE, default='not_paid')
     access_token = models.UUIDField(default=uuid.uuid4, editable=False)
+
+    def __str__(self):
+        return f"INV-{self.id} ({self.partner.name})"
 
 class InvoiceLine(models.Model):
     invoice = models.ForeignKey(Invoice, related_name='lines', on_delete=models.CASCADE)
