@@ -14,7 +14,6 @@ export default function CreateRulePage() {
     priority: 10
   });
 
-  // Fetch Accounts so we can select them in the dropdown
   useEffect(() => {
     api.get('/finance/accounts/').then(res => setAccounts(res.data));
   }, []);
@@ -23,7 +22,6 @@ export default function CreateRulePage() {
     e.preventDefault();
     try {
       await api.post('/finance/rules/', formData);
-      alert("Rule Saved!");
       router.push('/rules');
     } catch (err) {
       alert("Error saving rule");
@@ -32,93 +30,103 @@ export default function CreateRulePage() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] p-8 text-white">
-      <div className="max-w-4xl mx-auto mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">New Automation Rule</h1>
-        <button onClick={() => router.back()} className="flex items-center text-slate-400 hover:text-white">
-          <ArrowLeft size={20} className="mr-2" /> Back
+      <div className="max-w-5xl mx-auto mb-6 flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Auto Analytical Model</h1>
+        <button onClick={() => router.back()} className="flex items-center text-slate-400 hover:text-white border border-slate-600 px-4 py-2 rounded-lg">
+          <ArrowLeft size={18} className="mr-2" /> Back
         </button>
       </div>
 
-      <div className="max-w-4xl mx-auto bg-[#1e293b] border border-slate-700 rounded-xl p-8 shadow-xl">
-        {/* Status Bar (Matching Image Style) */}
-        <div className="flex items-center gap-4 border-b border-slate-700 pb-6 mb-8">
-          <button className="bg-pink-500/20 text-pink-400 px-4 py-1 rounded border border-pink-500/50 text-sm font-bold">New</button>
-          <button className="text-slate-500 px-4 py-1 text-sm font-bold">Confirm</button>
-          <div className="flex-1 text-right text-slate-500 text-sm">Status: <span className="text-white">Draft</span></div>
+      <div className="max-w-5xl mx-auto bg-[#1e293b] border border-slate-700 rounded-xl p-10 shadow-2xl">
+        
+        {/* Header Tabs matching Wireframe */}
+        <div className="flex justify-between items-center border-b border-slate-600 pb-4 mb-10">
+            <div className="flex gap-4">
+                <button className="bg-pink-500/20 text-pink-400 px-6 py-1.5 rounded text-sm font-bold border border-pink-500/50">New</button>
+                <button className="text-slate-500 hover:text-slate-300 font-bold text-sm px-4">Confirm</button>
+                <button className="text-slate-500 hover:text-slate-300 font-bold text-sm px-4">Archived</button>
+            </div>
+            <div className="flex text-xs font-bold text-slate-500 uppercase tracking-widest gap-2">
+                <span className="text-white">Draft</span> <span>›</span> <span>Confirm</span> <span>›</span> <span>Cancelled</span>
+            </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-12">
           
-          <div className="grid grid-cols-2 gap-12">
-            {/* Left Column */}
-            <div className="space-y-6">
-              <div>
-                <label className="block text-pink-400 text-sm font-bold mb-2">Rule Name</label>
-                <input 
-                  type="text" 
-                  className="bg-transparent border-b border-slate-600 w-full py-2 text-white focus:outline-none focus:border-pink-500"
-                  placeholder="e.g. Wood Purchase Rule"
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  required
-                />
-              </div>
+          {/* Rule Name */}
+          <div>
+             <label className="text-pink-400 font-bold text-sm block mb-2">Model Name</label>
+             <input type="text" className="w-1/2 bg-transparent border-b border-slate-500 text-white py-1 focus:outline-none focus:border-pink-500"
+                placeholder="e.g. Furniture Rule"
+                value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+          </div>
 
-              <div>
-                <label className="block text-pink-400 text-sm font-bold mb-2">Product Category (If match)</label>
-                <input 
-                  type="text" 
-                  className="bg-transparent border-b border-slate-600 w-full py-2 text-white focus:outline-none focus:border-pink-500"
-                  placeholder="e.g. Raw Material"
-                  value={formData.product_category}
-                  onChange={e => setFormData({...formData, product_category: e.target.value})}
-                  required
-                />
-              </div>
-            </div>
+          {/* Conditions Grid matching Wireframe */}
+          <div className="grid grid-cols-2 gap-x-12 gap-y-8">
+             {/* Left Col */}
+             <div className="space-y-6">
+                <div>
+                    <label className="text-pink-400 font-bold text-sm block mb-1">Partner Tag</label>
+                    <input disabled className="w-full bg-transparent border-b border-slate-600 text-slate-500 py-1 cursor-not-allowed" placeholder="Many to One (from list)" />
+                </div>
+                <div>
+                    <label className="text-pink-400 font-bold text-sm block mb-1">Product Category</label>
+                    <input className="w-full bg-transparent border-b border-slate-500 text-white py-1 focus:outline-none focus:border-pink-500"
+                        placeholder="e.g. Furniture"
+                        value={formData.product_category} onChange={e => setFormData({...formData, product_category: e.target.value})} />
+                </div>
+             </div>
 
-            {/* Right Column */}
-            <div className="space-y-6">
-               <div>
-                <label className="block text-pink-400 text-sm font-bold mb-2">Priority</label>
-                <input 
-                  type="number" 
-                  className="bg-transparent border-b border-slate-600 w-full py-2 text-white focus:outline-none focus:border-pink-500"
-                  value={formData.priority}
-                  onChange={e => setFormData({...formData, priority: parseInt(e.target.value)})}
-                />
-              </div>
+             {/* Right Col */}
+             <div className="space-y-6">
+                <div>
+                    <label className="text-pink-400 font-bold text-sm block mb-1">Partner</label>
+                    <input disabled className="w-full bg-transparent border-b border-slate-600 text-slate-500 py-1 cursor-not-allowed" placeholder="Many to One (from list)" />
+                </div>
+                <div>
+                    <label className="text-pink-400 font-bold text-sm block mb-1">Product</label>
+                    <input disabled className="w-full bg-transparent border-b border-slate-600 text-slate-500 py-1 cursor-not-allowed" placeholder="Many to One (from list)" />
+                </div>
+             </div>
+          </div>
+
+          {/* Auto Apply Section */}
+          <div className="border-t border-slate-700 pt-8 mt-8">
+            <label className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-6 block">Auto Apply Analytical Model</label>
+            
+            <div className="flex items-center gap-8">
+                <label className="text-pink-400 font-bold whitespace-nowrap">Analytics to Apply?</label>
+                <div className="flex-1">
+                    <select 
+                        className="w-full bg-transparent border-b border-pink-500 text-white py-2 focus:outline-none cursor-pointer"
+                        value={formData.target_account}
+                        onChange={e => setFormData({...formData, target_account: e.target.value})}
+                        required
+                    >
+                        <option value="" className="bg-[#1e293b] text-slate-400">Select Analytic Account...</option>
+                        {accounts.map((acc: any) => (
+                            <option key={acc.id} value={acc.id} className="bg-[#1e293b]">{acc.name} ({acc.code})</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="w-1/3">
+                    <label className="text-slate-500 text-xs block mb-1">Priority</label>
+                    <input type="number" className="w-20 bg-transparent border-b border-slate-500 text-white py-1 text-center"
+                        value={formData.priority} onChange={e => setFormData({...formData, priority: parseInt(e.target.value)})} />
+                </div>
             </div>
           </div>
 
-          {/* Bottom Section - The "Action" */}
-          <div className="bg-slate-800/50 p-6 rounded-xl border border-dashed border-slate-600 mt-8">
-            <h3 className="text-slate-400 text-sm font-bold mb-4 uppercase tracking-wider">Auto Apply Analytical Model</h3>
-            
-            <div className="flex items-center gap-4">
-              <label className="text-pink-400 font-bold whitespace-nowrap">Analytics to Apply?</label>
-              <select 
-                className="bg-[#0f172a] border border-slate-600 rounded px-4 py-2 w-full text-white focus:outline-none focus:border-pink-500"
-                value={formData.target_account}
-                onChange={e => setFormData({...formData, target_account: e.target.value})}
-                required
-              >
-                <option value="">-- Select Analytical Account --</option>
-                {accounts.map((acc: any) => (
-                  <option key={acc.id} value={acc.id}>{acc.name} ({acc.code})</option>
-                ))}
-              </select>
-            </div>
-            
-            <p className="text-xs text-slate-500 mt-4 italic">
-              "The model is applied if any one field matches the transaction line... making the rule stricter."
-            </p>
+          <div className="bg-slate-800/50 p-6 rounded-lg border border-dashed border-slate-700 text-sm text-slate-400 italic leading-relaxed">
+            "The model is applied if any one field matches the transaction line... Models with fewer matched fields are more generic, while more matches make them stricter."
           </div>
 
-          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg w-full">
-            <Save size={18} className="inline mr-2" />
-            Save Automation Rule
-          </button>
+          <div className="flex justify-end pt-4">
+             <button type="submit" className="bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-10 rounded shadow-lg shadow-pink-500/20 transition-all">
+                Confirm & Save
+             </button>
+          </div>
+
         </form>
       </div>
     </div>
